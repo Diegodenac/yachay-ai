@@ -1,0 +1,82 @@
+CONTEXTO DEL PROYECTO:
+Eres el arquitecto técnico de "Yachay AI", un tutor intercultural boliviano para un hackathon de 24-48h.
+Stack decidido: Vite+React (JS) frontend, Node/Express backend, Gemini 1.5 Flash como LLM.
+
+ESTRUCTURA YA CREADA EN DISCO:
+- yachay-ai/frontend/ → scaffold Vite+React+JS ya instalado con tailwindcss y @tailwindcss/vite
+- yachay-ai/backend/ → npm init hecho, dependencias instaladas (express cors dotenv @google/generative-ai firebase-admin)
+- yachay-ai/backend/.env → ya existe con GEMINI_API_KEY=AIza... y PORT=3001
+
+TU TAREA (ejecuta todo sin preguntar):
+
+1. Crea yachay-ai/backend/index.js con este contenido exacto:
+
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
+dotenv.config();
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+const SYSTEM_PROMPT = `Eres Yachay, un tutor de idiomas boliviano experto y empático.
+Tu rol es enseñar de forma bidireccional entre: Español ↔ Quechua, Español ↔ Aymara, Español ↔ Guaraní.
+
+REGLAS ESTRICTAS:
+1. Adapta tu nivel al usuario (principiante/intermedio/avanzado).
+2. Corrige errores con explicación cultural contextualizada, nunca de forma brusca.
+3. Usa siempre ejemplos de situaciones reales bolivianas (mercado, salud, trámites, turismo).
+4. Si el usuario escribe en el idioma que está aprendiendo, responde primero validando su intento.
+5. Mantén el contexto de la sesión: recuerda qué aprendió el usuario en esta conversación.
+6. Formato de respuesta: conversacional, máximo 3 párrafos cortos. Sin listas largas.`;
+
+app.post('/api/chat', async (req, res) => {
+  const { messages, targetLanguage, nativeLanguage, userLevel } = req.body;
+  if (!messages || !Array.isArray(messages)) {
+    return res.status(400).json({ error: 'messages array required' });
+  }
+  try {
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-1.5-flash',
+      systemInstruction: SYSTEM_PROMPT,
+    });
+    const chat = model.startChat({
+      history: messages.slice(0, -1).map(m => ({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: m.content }],
+      })),
+    });
+    const lastMessage = messages[messages.length - 1].content;
+    const contextPrefix = `[Idioma objetivo: ${targetLanguage || 'Quechua'} | Nivel: ${userLevel || 'principiante'} | Idioma nativo: ${nativeLanguage || 'Español'}]\n`;
+    const result = await chat.sendMessage(contextPrefix + lastMessage);
+    const text = result.response.text();
+    res.json({ reply: text });
+  } catch (error) {
+    console.error('Gemini error:', error);
+    res.status(500).json({ error: 'Error al contactar Gemini', detail: error.message });
+  }
+});
+
+app.get('/health', (_, res) => res.json({ status: 'ok', service: 'yachay-ai-backend' }));
+
+app.listen(process.env.PORT || 3001, () => {
+  console.log(`Yachay backend running on port ${process.env.PORT || 3001}`);
+});
+
+2. Edita yachay-ai/backend/package.json para agregar:
+   - "type": "module" al nivel raíz
+   - script "dev": "node --watch index.js"
+   - script "start": "node index.js"
+
+3. Verifica que el archivo .env existe y tiene GEMINI_API_KEY y PORT=3001.
+
+4. Ejecuta: npm run dev desde yachay-ai/backend/
+
+5. Confirma que el servidor responde en http://localhost:3001/health
+
+NO preguntes nada. Ejecuta, reporta errores si los hay.

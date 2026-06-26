@@ -1,0 +1,57 @@
+CONTEXTO:
+Proyecto Yachay AI — tutor intercultural boliviano (hackathon 24-48h).
+Backend Express corriendo en http://localhost:3001
+Frontend: yachay-ai/frontend/ — Vite + React JS + Tailwind CSS v4
+
+TU TAREA (sin preguntar, ejecuta todo):
+
+Construye el frontend completo del MVP con estas 3 pantallas funcionales:
+
+--- PANTALLA 1: Onboarding (/) ---
+Componente: src/pages/Onboarding.jsx
+- Título: "Yachay" + subtítulo "Tu tutor de idiomas bolivianos"
+- Selector de idioma a aprender: Quechua | Aymara | Guaraní (3 botones, uno seleccionable)
+- Selector de nivel: Principiante | Intermedio | Avanzado
+- Botón "Comenzar" → navega a /chat
+- Guarda selecciones en localStorage: targetLanguage, userLevel
+
+--- PANTALLA 2: Chat Tutor (/chat) ---
+Componente: src/pages/Chat.jsx
+- Header: logo "Yachay" + idioma seleccionado + botón "← Volver"
+- Área de mensajes scrolleable (burbujas usuario/asistente diferenciadas)
+- Input de texto + botón enviar
+- Al enviar: POST http://localhost:3001/api/chat con body:
+  { messages: [...historial], targetLanguage, userLevel, nativeLanguage: "Español" }
+  Lee targetLanguage y userLevel desde localStorage
+- Muestra estado "Yachay está escribiendo..." mientras espera respuesta
+- Mensaje de bienvenida automático al cargar: llama al API con mensaje inicial
+  "Saluda al usuario y preséntate brevemente. Pregunta su nombre."
+
+--- PANTALLA 3: Simulación (/simulation) ---
+Componente: src/pages/Simulation.jsx
+- 4 cards de escenarios: Mercado 🛒 | Centro de Salud 🏥 | Trámites 📋 | Turismo 🗺️
+- Al hacer clic en un card → navega a /chat pasando el escenario como query param ?scenario=mercado
+- En Chat.jsx: si existe ?scenario, el mensaje inicial cambia a:
+  "Iniciamos una simulación de [escenario] en [idioma]. Tú eres el turista/cliente. Empieza la escena."
+
+DISEÑO (obligatorio):
+- Fondo: #0A0A0A (negro profundo)
+- Acentos: #F5A623 (amarillo boliviano) y #2E7D32 (verde andino)
+- Tipografía: Inter desde Google Fonts
+- Estilo: minimalista, sin sombras excesivas, bordes sutiles #1E1E1E
+- Mobile-first, max-width 480px centrado en desktop
+
+ROUTING:
+- Instala react-router-dom: npm install react-router-dom
+- Configura rutas en src/main.jsx o src/App.jsx
+
+ARCHIVOS A CREAR/MODIFICAR:
+- src/main.jsx — setup router
+- src/App.jsx — rutas
+- src/pages/Onboarding.jsx
+- src/pages/Chat.jsx
+- src/pages/Simulation.jsx
+- src/index.css — variables CSS globales + reset
+
+Al terminar ejecuta: npm run dev
+Confirma que corre en http://localhost:5173 sin errores de consola.
