@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import MessageBubble from '../components/MessageBubble.jsx'
 import ProgressBar from '../components/ProgressBar.jsx'
+import { useFirebase } from '../context/FirebaseContext'
+import { createSession, syncSession, finalizeSession } from '../hooks/useSession'
 
 const SCENARIO_LABELS = {
   mercado: 'Mercado',
@@ -22,6 +24,7 @@ export default function Chat() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const scenario = searchParams.get('scenario')
+  const { user } = useFirebase()
 
   const targetLanguage = localStorage.getItem('targetLanguage') || 'Quechua'
   const userLevel = localStorage.getItem('userLevel') || 'Principiante'
@@ -32,8 +35,22 @@ export default function Chat() {
   const [stats, setStats] = useState({ wordsLearned: 0, corrections: 0 })
 
   const apiHistoryRef = useRef([])
+  const sessionIdRef = useRef(null)
   const initializedRef = useRef(false)
   const messagesEndRef = useRef(null)
+  const statsRef = useRef({ wordsLearned: 0, corrections: 0 })
+
+  // Keep statsRef in sync for use in cleanup
+  useEffect(() => {
+    statsRef.current = stats
+  }, [stats])
+
+  // Finalize session in Firestore when user leaves
+  useEffect(() => {
+    return () => {
+      finalizeSession(user?.uid, statsRef.current)
+    }
+  }, [user])
 
   useEffect(() => {
     if (initializedRef.current) return
@@ -50,14 +67,33 @@ export default function Chat() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading])
 
+  async function getAuthHeaders() {
+    const headers = { 'Content-Type': 'application/json' }
+    if (user) {
+      try {
+        const token = await user.getIdToken()
+        headers.Authorization = `Bearer ${token}`
+      } catch {
+        // token optional — proceed without it
+      }
+    }
+    return headers
+  }
+
   async function initChat(prompt) {
     const initialMsg = { role: 'user', content: prompt }
     apiHistoryRef.current = [initialMsg]
     setLoading(true)
+
+    // Create Firestore session
+    const sid = await createSession(user?.uid, { scenario, targetLanguage, userLevel })
+    sessionIdRef.current = sid
+
     try {
+      const headers = await getAuthHeaders()
       const res = await fetch(API_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           messages: [initialMsg],
           targetLanguage,
@@ -67,12 +103,19 @@ export default function Chat() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Error del servidor')
+
       const reply = { role: 'assistant', content: data.reply }
       apiHistoryRef.current = [...apiHistoryRef.current, reply]
       setMessages([reply])
-      if (data.reply && data.reply.includes('%%CORRECTION%%')) {
-        setStats(prev => ({ ...prev, corrections: prev.corrections + 1, wordsLearned: prev.wordsLearned + 1 }))
+
+      const newStats = { wordsLearned: 0, corrections: 0 }
+      if (data.reply?.includes('%%CORRECTION%%')) {
+        newStats.corrections = 1
+        newStats.wordsLearned = 1
       }
+      setStats(newStats)
+
+      syncSession(user?.uid, sid, { messages: [reply], ...newStats })
     } catch (err) {
       setMessages([{ role: 'assistant', content: `Error al conectar con el servidor: ${err.message}` }])
     } finally {
@@ -92,9 +135,10 @@ export default function Chat() {
 
     setLoading(true)
     try {
+      const headers = await getAuthHeaders()
       const res = await fetch(API_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           messages: newHistory,
           targetLanguage,
@@ -104,12 +148,24 @@ export default function Chat() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Error del servidor')
+
       const reply = { role: 'assistant', content: data.reply }
       apiHistoryRef.current = [...apiHistoryRef.current, reply]
+
+      const updatedMessages = [...messages, userMsg, reply]
       setMessages(prev => [...prev, reply])
-      if (data.reply && data.reply.includes('%%CORRECTION%%')) {
-        setStats(prev => ({ ...prev, corrections: prev.corrections + 1, wordsLearned: prev.wordsLearned + 1 }))
+
+      const hadCorrection = data.reply?.includes('%%CORRECTION%%')
+      const newStats = {
+        wordsLearned: stats.wordsLearned + (hadCorrection ? 1 : 0),
+        corrections: stats.corrections + (hadCorrection ? 1 : 0),
       }
+      if (hadCorrection) setStats(newStats)
+
+      syncSession(user?.uid, sessionIdRef.current, {
+        messages: [...updatedMessages],
+        ...newStats,
+      })
     } catch (err) {
       const errMsg = { role: 'assistant', content: `Error: ${err.message}` }
       apiHistoryRef.current = [...apiHistoryRef.current, errMsg]

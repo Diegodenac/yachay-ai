@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useFirebase } from '../context/FirebaseContext'
+import { ensureUserProfile } from '../hooks/useSession'
 
 const LANGUAGES = ['Quechua', 'Aymara', 'Guaraní']
 const LEVELS = ['Principiante', 'Intermedio', 'Avanzado']
@@ -8,10 +10,12 @@ export default function Onboarding() {
   const [language, setLanguage] = useState('Quechua')
   const [level, setLevel] = useState('Principiante')
   const navigate = useNavigate()
+  const { user } = useFirebase()
 
-  function handleStart() {
+  async function handleStart() {
     localStorage.setItem('targetLanguage', language)
     localStorage.setItem('userLevel', level)
+    await ensureUserProfile(user?.uid, { targetLanguage: language, userLevel: level })
     navigate('/chat')
   }
 

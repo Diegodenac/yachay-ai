@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import axios from 'axios';
+import { admin, isAdminEnabled } from './firebase.js';
 
 dotenv.config();
 
@@ -10,6 +11,18 @@ app.use(cors());
 app.use(express.json());
 
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
+
+async function verifyToken(req, res, next) {
+  if (!isAdminEnabled) return next();
+  const token = req.headers.authorization?.split('Bearer ')[1];
+  if (!token) return next();
+  try {
+    req.user = await admin.auth().verifyIdToken(token);
+    next();
+  } catch {
+    return res.status(401).json({ error: 'Token inválido' });
+  }
+}
 
 async function groqChat(messages, options = {}) {
   const { data } = await axios.post(GROQ_API_URL, {
@@ -49,7 +62,7 @@ EXPLICACIÓN: [explicación breve y cultural, máx 1 línea]
 
 Este bloque puede aparecer en cualquier parte de tu respuesta. Solo inclúyelo cuando haya un error real. No lo incluyas en saludos ni presentaciones.`;
 
-app.post('/api/chat', async (req, res) => {
+app.post('/api/chat', verifyToken, async (req, res) => {
   const { messages, targetLanguage, nativeLanguage, userLevel } = req.body;
 
   if (!messages || !Array.isArray(messages)) {
