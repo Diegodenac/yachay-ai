@@ -12,7 +12,7 @@ Te enseñaré a comprar en el mercado paso a paso.
 Empecemos: ¡Imaynallan kashanki! — ¿Cómo estás?`,
 
   // Turn 1 — user said "Allin kachkani, yupaychani"
-  `¡Ancha allin! — ¡Muy bien dicho! 🎉
+  `¡Ancha allin! — ¡Muy bien dicho!
 
 Acabas de usar dos frases clave:
 • allin kachkani → "estoy bien"
@@ -21,12 +21,12 @@ Acabas de usar dos frases clave:
 Ahora dime qué quieres comprar. En quechua las frutas son fáciles:
 • mansana → manzana
 • qamitu → tomate
-• papa → papa (¡igual que en español!)
+• papa → papa (igual que en español)
 
 Prueba decir: "Mansanata munani" (Quiero manzanas)`,
 
   // Turn 2 — user said "Mansanata munani"
-  `¡Perfectamente dicho! 🌟
+  `¡Perfectamente dicho!
 
 Ya puedes pedir en el mercado. Sigamos:
 
@@ -43,8 +43,8 @@ Prueba: "Iskay mansanata munani" — Quiero dos manzanas`,
 %%CORRECTION%%
 ORIGINAL: Iskay mansana munani
 CORRECTO: Iskay mansanata munani
-EXPLICACIÓN: En quechua el sufijo -ta marca el objeto directo. mansana + ta = mansanata. ¡Solo un pequeño detalle!
+EXPLICACIÓN: En quechua el sufijo -ta marca el objeto directo. mansana + ta = mansanata. Solo un pequeño detalle.
 %%END_CORRECTION%%
 
-¡Sumaq yachaq kanki! — ¡Eres un gran estudiante! Ya puedes hacer compras básicas en quechua en cualquier mercado de Bolivia.`,
+¡Sumaq yachaq kanki! — Eres un gran estudiante. Ya puedes hacer compras básicas en quechua en cualquier mercado de Bolivia.`,
 ]
