@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Yachay AI — Pitch</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --gold: #F5A623;
+    --gold-dim: #B87A0F;
+    --bg: #0A0A0A;
+    --bg2: #111111;
+    --bg3: #181818;
+    --border: #222222;
+    --text: #EEEEEE;
+    --muted: #777777;
+    --green: #4ADE80;
+    --red: #FF6B6B;
+  }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--bg);
+    font-family: 'Inter', system-ui, sans-serif;
+    color: var(--text);
+    overflow: hidden;
+  }
+
+  .deck {
+    width: 100%; height: 100%;
+    position: relative;
+  }
+
+  .slide {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    padding: 60px 80px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.35s ease;
+  }
+  .slide.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* progress bar */
+  #progress {
+    position: fixed; bottom: 0; left: 0;
+    height: 3px;
+    background: var(--gold);
+    transition: width 0.35s ease;
+    z-index: 10;
+  }
+
+  /* slide counter */
+  #counter {
+    position: fixed; bottom: 16px; right: 24px;
+    font-size: 13px; color: var(--muted);
+    font-weight: 500; letter-spacing: 0.05em;
+    z-index: 10;
+  }
+
+  /* nav hints */
+  #nav-hint {
+    position: fixed; bottom: 16px; left: 24px;
+    font-size: 12px; color: #333;
+    z-index: 10;
+  }
+
+  /* ─── TYPOGRAPHY ─── */
+  .tag {
+    display: inline-block;
+    background: rgba(245,166,35,0.12);
+    color: var(--gold);
+    border: 1px solid rgba(245,166,35,0.3);
+    border-radius: 100px;
+    padding: 5px 16px;
+    font-size: 12px; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    margin-bottom: 28px;
+  }
+
+  h1 { font-size: clamp(48px, 7vw, 88px); font-weight: 900; line-height: 1; }
+  h2 { font-size: clamp(32px, 4.5vw, 56px); font-weight: 800; line-height: 1.15; }
+  h3 { font-size: clamp(20px, 2.5vw, 28px); font-weight: 700; }
+  p  { font-size: clamp(15px, 1.8vw, 20px); color: #AAAAAA; line-height: 1.65; }
+
+  .gold { color: var(--gold); }
+  .white { color: #FFFFFF; }
+  .muted { color: var(--muted); }
+
+  /* ─── LAYOUT HELPERS ─── */
+  .centered { text-align: center; max-width: 900px; }
+  .left { align-items: flex-start; max-width: 1100px; width: 100%; }
+  .split {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 60px; width: 100%; max-width: 1100px; align-items: center;
+  }
+  .cols3 {
+    display: grid; grid-template-columns: repeat(3,1fr);
+    gap: 24px; width: 100%; max-width: 1100px; margin-top: 48px;
+  }
+  .cols2 {
+    display: grid; grid-template-columns: repeat(2,1fr);
+    gap: 24px; width: 100%; max-width: 900px; margin-top: 48px;
+  }
+  .rows { display: flex; flex-direction: column; gap: 16px; }
+
+  /* ─── CARDS ─── */
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px 24px;
+  }
+  .card.gold-border { border-color: rgba(245,166,35,0.35); }
+
+  .card-icon { font-size: 32px; margin-bottom: 14px; }
+  .card-title { font-size: 16px; font-weight: 700; color: #FFF; margin-bottom: 6px; }
+  .card-body { font-size: 14px; color: var(--muted); line-height: 1.55; }
+
+  /* ─── BIG STAT ─── */
+  .stat { margin-bottom: 8px; }
+  .stat-num { font-size: clamp(52px, 7vw, 96px); font-weight: 900; color: var(--gold); line-height: 1; }
+  .stat-label { font-size: 16px; color: var(--muted); margin-top: 4px; }
+
+  /* ─── PILL LIST ─── */
+  .pill-list { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
+  .pill {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    padding: 8px 18px;
+    font-size: 14px; font-weight: 500; color: #CCC;
+  }
+  .pill.active {
+    background: rgba(245,166,35,0.1);
+    border-color: rgba(245,166,35,0.4);
+    color: var(--gold);
+  }
+
+  /* ─── STEP ─── */
+  .step {
+    display: flex; align-items: flex-start; gap: 18px;
+    padding: 20px 24px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+  }
+  .step-num {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--gold); color: #000;
+    font-size: 15px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .step-text h4 { font-size: 16px; font-weight: 700; color: #FFF; margin-bottom: 4px; }
+  .step-text p { font-size: 14px; color: var(--muted); }
+
+  /* ─── TECH BADGE ─── */
+  .tech-row { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 40px; justify-content: center; }
+  .tech-badge {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 12px; padding: 12px 20px;
+    font-size: 15px; font-weight: 600; color: #DDD;
+  }
+  .tech-badge .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--gold);
+  }
+  .tech-badge.google { border-color: rgba(66,133,244,0.4); }
+  .tech-badge.google .dot { background: #4285F4; }
+
+  /* ─── SCORE BAR ─── */
+  .score-item { margin-bottom: 14px; }
+  .score-label { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 6px; }
+  .score-label span:first-child { color: #CCC; font-weight: 500; }
+  .score-label span:last-child { color: var(--gold); font-weight: 700; }
+  .score-bar-bg { background: var(--bg3); border-radius: 100px; height: 8px; }
+  .score-bar-fill { background: var(--gold); border-radius: 100px; height: 8px; }
+
+  /* ─── DEMO SLIDE ─── */
+  .demo-badge {
+    font-size: clamp(80px, 12vw, 140px);
+    font-weight: 900;
+    background: linear-gradient(135deg, #F5A623 0%, #FF8C00 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-align: center; line-height: 1;
+  }
+
+  /* ─── COVER ─── */
+  .logo-big {
+    width: 96px; height: 96px; border-radius: 28px;
+    background: linear-gradient(135deg, #F5A623, #E8920A);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 52px; font-weight: 900; color: #0A0A0A;
+    margin-bottom: 32px;
+    box-shadow: 0 0 60px rgba(245,166,35,0.25);
+  }
+
+  /* ─── QUOTE ─── */
+  .quote {
+    font-size: clamp(20px, 2.5vw, 30px);
+    color: #DDD; font-weight: 300; font-style: italic;
+    line-height: 1.6; text-align: center;
+    max-width: 750px;
+    border-left: 3px solid var(--gold);
+    padding-left: 28px; text-align: left;
+  }
+
+  /* ─── CORRECTION CARD PREVIEW ─── */
+  .correction-preview {
+    background: linear-gradient(135deg, #1a1a00, #0d1a00);
+    border: 1px solid var(--gold);
+    border-left: 4px solid var(--gold);
+    border-radius: 12px;
+    padding: 18px 22px;
+    max-width: 460px;
+  }
+  .corr-tag { color: var(--gold); font-size: 11px; font-weight: 700; letter-spacing: 0.1em; margin-bottom: 10px; }
+  .corr-wrong { color: var(--red); font-size: 14px; margin-bottom: 4px; }
+  .corr-right { color: var(--green); font-size: 14px; margin-bottom: 4px; }
+  .corr-explain { color: var(--muted); font-size: 13px; font-style: italic; }
+
+  /* divider */
+  .divider { width: 48px; height: 3px; background: var(--gold); border-radius: 2px; margin: 24px 0; }
+</style>
+</head>
+<body>
+
+<div id="progress"></div>
+<div id="counter"></div>
+<div id="nav-hint">← → o Espacio para avanzar</div>
+
+<div class="deck" id="deck">
+
+  <!-- ══════════════ SLIDE 1 — COVER ══════════════ -->
+  <div class="slide active centered" id="s1">
+    <div class="logo-big">Y</div>
+    <div class="tag">Build with AI La Paz 2026</div>
+    <h1 class="white">Yachay<span class="gold"> AI</span></h1>
+    <div style="height:20px"></div>
+    <p style="font-size:clamp(18px,2.2vw,26px); color:#888; max-width:600px; text-align:center;">
+      Tutor conversacional con IA para aprender<br/>
+      <span style="color:#CCC; font-weight:600;">idiomas indígenas bolivianos</span>
+    </p>
+    <div style="height:48px"></div>
+    <div style="display:flex; gap:12px; flex-wrap:wrap; justify-content:center;">
+      <span class="pill active">Quechua</span>
+      <span class="pill active">Aymara</span>
+      <span class="pill active">Guaraní</span>
+    </div>
+  </div>
+
+  <!-- ══════════════ SLIDE 2 — EL PROBLEMA ══════════════ -->
+  <div class="slide left" id="s2">
+    <div class="tag">El Problema</div>
+    <h2>Bolivia tiene <span class="gold">36 idiomas<br/>originarios</span> que se están perdiendo</h2>
+    <div class="divider"></div>
+    <div style="display:grid; grid-template-columns: repeat(3,1fr); gap:24px; width:100%; max-width:1000px; margin-top:16px;">
+      <div class="card">
+        <div class="stat-num">2.2M</div>
+        <div class="stat-label">hablantes de quechua en Bolivia</div>
+      </div>
+      <div class="card">
+        <div class="stat-num">67%</div>
+        <div class="stat-label">de hablantes son mayores de 40 años</div>
+      </div>
+      <div class="card">
+        <div class="stat-num" style="font-size:clamp(40px,5vw,72px);">0 apps</div>
+        <div class="stat-label">dedicadas a idiomas indígenas en tiendas</div>
+      </div>
+    </div>
+    <div style="height:28px"></div>
+    <p>Duolingo tiene <strong style="color:#FFF">40+ idiomas</strong> — ninguno originario de Bolivia. La transmisión intergeneracional se rompe y con ella desaparece una cultura.</p>
+  </div>
+
+  <!-- ══════════════ SLIDE 3 — LA SOLUCIÓN ══════════════ -->
+  <div class="slide left" id="s3">
+    <div class="tag">La Solución</div>
+    <h2>Yachay: tu tutor de IA que<br/><span class="gold">habla, escucha y corrige</span></h2>
+    <div class="divider"></div>
+    <div class="cols3" style="margin-top:32px;">
+      <div class="card gold-border">
+        <div class="card-icon">💬</div>
+        <div class="card-title">Conversación real</div>
+        <div class="card-body">Practica en escenarios reales: el mercado, centro de salud, trámites, turismo.</div>
+      </div>
+      <div class="card gold-border">
+        <div class="card-icon">✦</div>
+        <div class="card-title">Corrección inteligente</div>
+        <div class="card-body">Detecta errores gramaticales y los explica con contexto, sin interrumpir el flujo.</div>
+      </div>
+      <div class="card gold-border">
+        <div class="card-icon">🎙️</div>
+        <div class="card-title">Voz bidireccional</div>
+        <div class="card-body">Yachay habla en voz alta. Vos también podés hablarle — sin tocar el teclado.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ SLIDE 4 — CÓMO FUNCIONA ══════════════ -->
+  <div class="slide left" id="s4">
+    <div class="tag">Cómo Funciona</div>
+    <h2>Tres pasos para <span class="gold">aprender haciendo</span></h2>
+    <div class="rows" style="width:100%; max-width:820px; margin-top:40px;">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-text">
+          <h4>Elegís tu idioma y nivel</h4>
+          <p>Quechua, Aymara o Guaraní — desde principiante hasta avanzado. Yachay adapta el nivel automáticamente.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-text">
+          <h4>Elegís un escenario de la vida real</h4>
+          <p>Mercado, Centro de Salud, Trámites o Turismo. Yachay actúa como interlocutor nativo.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-text">
+          <h4>Conversás — Yachay enseña y corrige</h4>
+          <p>Respondés escribiendo o hablando. La IA detecta errores, los explica y te da la forma correcta.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ SLIDE 5 — USO DE IA ══════════════ -->
+  <div class="slide left" id="s5">
+    <div class="tag">Uso de Inteligencia Artificial</div>
+    <h2>IA que <span class="gold">entiende el contexto</span><br/>lingüístico boliviano</h2>
+    <div class="divider"></div>
+    <div class="split" style="margin-top:8px;">
+      <div class="rows" style="gap:14px;">
+        <div class="card">
+          <div class="card-title">🧠 LLaMA 3.3 70B via Groq</div>
+          <div class="card-body">Modelo de lenguaje de última generación. Genera respuestas contextuales, detecta errores morfológicos y adapta el vocabulario al nivel del usuario.</div>
+        </div>
+        <div class="card">
+          <div class="card-title" style="color:#4285F4;">🔥 Firebase (Google)</div>
+          <div class="card-body">Auth anónima + Firestore para guardar el progreso de cada sesión. El usuario retoma donde lo dejó.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">🎤 Web Speech API</div>
+          <div class="card-body">Síntesis y reconocimiento de voz nativo del browser. Sin costo de API adicional.</div>
+        </div>
+      </div>
+      <div>
+        <div class="correction-preview">
+          <div class="corr-tag">✦ CORRECCIÓN GENERADA POR IA</div>
+          <div class="corr-wrong"><span style="color:#555;font-size:12px;">Escribiste: </span>Iskay mansana munani</div>
+          <div class="corr-right"><span style="color:#555;font-size:12px;">Correcto: </span>Iskay mansanata munani</div>
+          <div class="corr-explain">En quechua el sufijo <strong style="color:#DDD;">-ta</strong> marca el objeto directo. mansana + ta = mansanata.</div>
+        </div>
+        <p style="font-size:13px; color:var(--muted); margin-top:16px; text-align:center;">La IA genera correcciones contextuales<br/>en tiempo real</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ SLIDE 6 — STACK TÉCNICO ══════════════ -->
+  <div class="slide centered" id="s6">
+    <div class="tag">Implementación Técnica</div>
+    <h2>Stack completo,<br/><span class="gold">deployado en producción</span></h2>
+    <div style="height:8px"></div>
+    <p>Frontend en Vercel · Backend en Railway · Base de datos en Firestore</p>
+    <div class="tech-row">
+      <div class="tech-badge google"><span class="dot"></span>Firebase (Google)</div>
+      <div class="tech-badge google"><span class="dot"></span>Firestore (Google)</div>
+      <div class="tech-badge"><span class="dot"></span>React + Vite</div>
+      <div class="tech-badge"><span class="dot"></span>Node.js + Express</div>
+      <div class="tech-badge"><span class="dot"></span>Groq API</div>
+      <div class="tech-badge"><span class="dot"></span>LLaMA 3.3 70B</div>
+      <div class="tech-badge"><span class="dot"></span>Web Speech API</div>
+      <div class="tech-badge"><span class="dot"></span>Vercel + Railway</div>
+    </div>
+    <div style="height:32px"></div>
+    <div style="display:flex; gap:32px; justify-content:center; flex-wrap:wrap;">
+      <div style="text-align:center;">
+        <div style="font-size:28px; font-weight:800; color:var(--gold);">2</div>
+        <div style="font-size:13px; color:var(--muted);">servicios en producción</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:28px; font-weight:800; color:var(--gold);">3</div>
+        <div style="font-size:13px; color:var(--muted);">idiomas soportados</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:28px; font-weight:800; color:var(--gold);">4</div>
+        <div style="font-size:13px; color:var(--muted);">escenarios reales</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:28px; font-weight:800; color:var(--gold);">0</div>
+        <div style="font-size:13px; color:var(--muted);">apps similares en Bolivia</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ SLIDE 7 — IMPACTO ══════════════ -->
+  <div class="slide left" id="s7">
+    <div class="tag">Impacto y Escalabilidad</div>
+    <h2>Un idioma preservado es<br/><span class="gold">una cultura que sobrevive</span></h2>
+    <div class="divider"></div>
+    <div class="cols2" style="margin-top:24px;">
+      <div class="card">
+        <div class="card-icon">🏫</div>
+        <div class="card-title">Educación intercultural</div>
+        <div class="card-body">Escuelas con Educación Intercultural Bilingüe (EIB) en todo el país — Yachay como herramienta de apoyo docente.</div>
+      </div>
+      <div class="card">
+        <div class="card-icon">🌎</div>
+        <div class="card-title">Turismo sostenible</div>
+        <div class="card-body">Turistas que visitan comunidades indígenas — aprenden frases básicas antes de llegar.</div>
+      </div>
+      <div class="card">
+        <div class="card-icon">👨‍👩‍👧</div>
+        <div class="card-title">Reconexión generacional</div>
+        <div class="card-body">Jóvenes bolivianos que quieren reconectar con la lengua de sus abuelos, a su propio ritmo.</div>
+      </div>
+      <div class="card">
+        <div class="card-icon">📈</div>
+        <div class="card-title">Escalable a 36 idiomas</div>
+        <div class="card-body">La arquitectura soporta cualquier idioma con solo actualizar el prompt del tutor. Mojeño, Chipaya, Uru y más.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ SLIDE 8 — DEMO ══════════════ -->
+  <div class="slide centered" id="s8">
+    <div class="tag">Demostración en vivo</div>
+    <div class="demo-badge">DEMO</div>
+    <div style="height:32px"></div>
+    <p style="font-size:18px; color:#666;">
+      Escenario: <strong style="color:#AAA;">Mercado de Cochabamba</strong> · Idioma: <strong style="color:var(--gold);">Quechua</strong> · Nivel: Principiante
+    </p>
+    <div style="height:40px"></div>
+    <div style="display:flex; gap:16px; flex-wrap:wrap; justify-content:center;">
+      <div class="pill active">1. Yachay saluda en quechua</div>
+      <div class="pill active">2. Usuario responde</div>
+      <div class="pill active">3. Practica vocabulario</div>
+      <div class="pill active">4. Corrección inteligente</div>
+    </div>
+  </div>
+
+  <!-- ══════════════ SLIDE 9 — CIERRE ══════════════ -->
+  <div class="slide centered" id="s9">
+    <div class="logo-big">Y</div>
+    <h1><span class="gold">Yachay</span> AI</h1>
+    <div style="height:32px"></div>
+    <p class="quote" style="text-align:center; border:none; padding:0; font-size:clamp(16px,2vw,22px);">
+      <em>"Yachay"</em> significa <strong style="color:var(--gold);">aprender</strong> en quechua.<br/>
+      Porque cada idioma que se pierde es una cultura que desaparece.
+    </p>
+    <div style="height:48px"></div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap; justify-content:center;">
+      <span class="pill active">Educación</span>
+      <span class="pill active">Cultura</span>
+      <span class="pill active">Inclusión</span>
+      <span class="pill active">Bolivia</span>
+    </div>
+    <div style="height:40px"></div>
+    <p style="font-size:14px; color:#333;">Build with AI La Paz 2026 · Google Developer Groups</p>
+  </div>
+
+</div><!-- /deck -->
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  let current = 0;
+
+  function go(n) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(n, total - 1));
+    slides[current].classList.add('active');
+    document.getElementById('counter').textContent = `${current + 1} / ${total}`;
+    document.getElementById('progress').style.width = `${((current + 1) / total) * 100}%`;
+  }
+
+  document.addEventListener('keydown', e => {
+    if (['ArrowRight','ArrowDown','Space',' '].includes(e.key)) { e.preventDefault(); go(current + 1); }
+    if (['ArrowLeft','ArrowUp'].includes(e.key)) { e.preventDefault(); go(current - 1); }
+  });
+
+  // Touch / click navigation
+  let touchX = 0;
+  document.addEventListener('touchstart', e => { touchX = e.touches[0].clientX; });
+  document.addEventListener('touchend', e => {
+    const dx = touchX - e.changedTouches[0].clientX;
+    if (Math.abs(dx) > 40) go(dx > 0 ? current + 1 : current - 1);
+  });
+  document.addEventListener('click', e => {
+    if (e.clientX > window.innerWidth / 2) go(current + 1);
+    else go(current - 1);
+  });
+
+  go(0);
+</script>
+</body>
+</html>
