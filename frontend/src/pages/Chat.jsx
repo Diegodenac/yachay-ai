@@ -66,14 +66,15 @@ export default function Chat() {
         }),
       })
       const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Error del servidor')
       const reply = { role: 'assistant', content: data.reply }
       apiHistoryRef.current = [...apiHistoryRef.current, reply]
       setMessages([reply])
       if (data.reply && data.reply.includes('%%CORRECTION%%')) {
         setStats(prev => ({ ...prev, corrections: prev.corrections + 1, wordsLearned: prev.wordsLearned + 1 }))
       }
-    } catch {
-      setMessages([{ role: 'assistant', content: '¡Hola! Parece que hay un problema de conexión con el servidor. Verifica que el backend esté corriendo en el puerto 3001.' }])
+    } catch (err) {
+      setMessages([{ role: 'assistant', content: `Error al conectar con el servidor: ${err.message}` }])
     } finally {
       setLoading(false)
     }
@@ -102,14 +103,15 @@ export default function Chat() {
         }),
       })
       const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Error del servidor')
       const reply = { role: 'assistant', content: data.reply }
       apiHistoryRef.current = [...apiHistoryRef.current, reply]
       setMessages(prev => [...prev, reply])
       if (data.reply && data.reply.includes('%%CORRECTION%%')) {
         setStats(prev => ({ ...prev, corrections: prev.corrections + 1, wordsLearned: prev.wordsLearned + 1 }))
       }
-    } catch {
-      const errMsg = { role: 'assistant', content: 'Error al conectar con el servidor.' }
+    } catch (err) {
+      const errMsg = { role: 'assistant', content: `Error: ${err.message}` }
       apiHistoryRef.current = [...apiHistoryRef.current, errMsg]
       setMessages(prev => [...prev, errMsg])
     } finally {

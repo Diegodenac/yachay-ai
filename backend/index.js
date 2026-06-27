@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import Groq from 'groq-sdk';
+import axios from 'axios';
 
 dotenv.config();
 
@@ -9,7 +9,22 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
+
+async function groqChat(messages, options = {}) {
+  const { data } = await axios.post(GROQ_API_URL, {
+    model: options.model || 'llama-3.3-70b-versatile',
+    messages,
+    max_tokens: options.max_tokens || 1024,
+    temperature: options.temperature || 0.7,
+  }, {
+    headers: {
+      'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+  });
+  return data.choices[0]?.message?.content || '';
+}
 
 const SYSTEM_PROMPT = `Eres Yachay, un tutor de idiomas boliviano experto y empático.
 Tu rol es enseñar de forma bidireccional entre: Español ↔ Quechua, Español ↔ Aymara, Español ↔ Guaraní.
@@ -52,18 +67,11 @@ app.post('/api/chat', async (req, res) => {
       }))
     ];
 
-    const completion = await groq.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
-      messages: groqMessages,
-      max_tokens: 1024,
-      temperature: 0.7,
-    });
-
-    const reply = completion.choices[0]?.message?.content || '';
+    const reply = await groqChat(groqMessages);
     res.json({ reply });
 
   } catch (error) {
-    console.error('Groq error:', error);
+    console.error('Groq error:', error.message);
     res.status(500).json({ error: 'Error al contactar Groq', detail: error.message });
   }
 });
@@ -72,16 +80,11 @@ app.get('/health', (_, res) => res.json({ status: 'ok', service: 'yachay-ai-back
 
 app.get('/api/demo-correction', async (req, res) => {
   try {
-    const completion = await groq.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: '[Idioma objetivo: Quechua | Nivel: principiante | Idioma nativo: Español]\nQuiero decir "buenos días" pero no sé cómo. Intenté decir: "Allin tutamanta" pero no estoy seguro si está bien.' }
-      ],
-      max_tokens: 512,
-      temperature: 0.7,
-    });
-    res.json({ reply: completion.choices[0]?.message?.content || '' });
+    const reply = await groqChat([
+      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'user', content: '[Idioma objetivo: Quechua | Nivel: principiante | Idioma nativo: Español]\nQuiero decir "buenos días" pero no sé cómo. Intenté decir: "Allin tutamanta" pero no estoy seguro si está bien.' }
+    ], { max_tokens: 512 });
+    res.json({ reply });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
