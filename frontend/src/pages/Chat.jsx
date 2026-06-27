@@ -67,6 +67,14 @@ export default function Chat() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading])
 
+  async function safeJson(res) {
+    const text = await res.text()
+    if (!text) throw new Error(`Servidor devolvió respuesta vacía (HTTP ${res.status})`)
+    try { return JSON.parse(text) } catch {
+      throw new Error(`Respuesta inválida del servidor (HTTP ${res.status})`)
+    }
+  }
+
   async function getAuthHeaders() {
     const headers = { 'Content-Type': 'application/json' }
     if (user) {
@@ -101,7 +109,7 @@ export default function Chat() {
           nativeLanguage: 'Español',
         }),
       })
-      const data = await res.json()
+      const data = await safeJson(res)
       if (!res.ok) throw new Error(data.error || 'Error del servidor')
 
       const reply = { role: 'assistant', content: data.reply }
@@ -146,7 +154,7 @@ export default function Chat() {
           nativeLanguage: 'Español',
         }),
       })
-      const data = await res.json()
+      const data = await safeJson(res)
       if (!res.ok) throw new Error(data.error || 'Error del servidor')
 
       const reply = { role: 'assistant', content: data.reply }
