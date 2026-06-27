@@ -34,6 +34,7 @@ export default function Chat() {
   const [loading, setLoading] = useState(false)
   const [stats, setStats] = useState({ wordsLearned: 0, corrections: 0 })
   const [ttsEnabled, setTtsEnabled] = useState(true)
+  const [isListening, setIsListening] = useState(false)
 
   const apiHistoryRef = useRef([])
   const sessionIdRef = useRef(null)
@@ -41,6 +42,7 @@ export default function Chat() {
   const messagesEndRef = useRef(null)
   const statsRef = useRef({ wordsLearned: 0, corrections: 0 })
   const ttsEnabledRef = useRef(true)
+  const recognitionRef = useRef(null)
 
   // Keep statsRef in sync for use in cleanup
   useEffect(() => {
@@ -63,6 +65,29 @@ export default function Chat() {
     ttsEnabledRef.current = next
     setTtsEnabled(next)
     if (!next) window.speechSynthesis.cancel()
+  }
+
+  function toggleMic() {
+    if (isListening) {
+      recognitionRef.current?.stop()
+      setIsListening(false)
+      return
+    }
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition
+    if (!SR) return
+    const r = new SR()
+    r.lang = 'es-BO'
+    r.interimResults = false
+    r.maxAlternatives = 1
+    r.onresult = (e) => {
+      const transcript = e.results[0][0].transcript.trim()
+      if (transcript) doSend(transcript)
+    }
+    r.onend = () => setIsListening(false)
+    r.onerror = () => setIsListening(false)
+    r.start()
+    recognitionRef.current = r
+    setIsListening(true)
   }
 
   // Finalize session in Firestore when user leaves
@@ -152,8 +177,7 @@ export default function Chat() {
     }
   }
 
-  async function handleSend() {
-    const text = input.trim()
+  async function doSend(text) {
     if (!text || loading) return
     setInput('')
 
@@ -203,6 +227,10 @@ export default function Chat() {
     } finally {
       setLoading(false)
     }
+  }
+
+  function handleSend() {
+    doSend(input.trim())
   }
 
   function handleKeyDown(e) {
@@ -343,13 +371,13 @@ export default function Chat() {
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={dynamicPlaceholder}
+            placeholder={isListening ? 'Escuchando...' : dynamicPlaceholder}
             disabled={loading}
             style={{
               flex: 1,
               padding: '12px 16px',
               borderRadius: '24px',
-              border: '1px solid #1E1E1E',
+              border: `1px solid ${isListening ? '#F5A623' : '#1E1E1E'}`,
               background: '#0F0F0F',
               color: '#FFFFFF',
               fontSize: '15px',
@@ -358,6 +386,29 @@ export default function Chat() {
               caretColor: '#F5A623',
             }}
           />
+          <button
+            onClick={toggleMic}
+            disabled={loading}
+            title={isListening ? 'Detener' : 'Hablar'}
+            style={{
+              width: '44px',
+              height: '44px',
+              borderRadius: '50%',
+              border: 'none',
+              background: isListening ? '#F5A623' : '#1A1A1A',
+              color: isListening ? '#0A0A0A' : '#888888',
+              fontSize: '18px',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              transition: 'background 0.15s ease',
+              lineHeight: 1,
+            }}
+          >
+            🎤
+          </button>
           <button
             onClick={handleSend}
             disabled={loading || !input.trim()}
