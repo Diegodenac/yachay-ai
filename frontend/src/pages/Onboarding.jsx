@@ -46,6 +46,9 @@ export default function Onboarding() {
             marginTop: '10px',
             fontFamily: 'Inter, system-ui, sans-serif',
           }}>Tu tutor de idiomas bolivianos</p>
+          <p style={{ color: '#555', fontSize: '13px', marginTop: '4px' }}>
+            Quechua · Aymara · Guaraní
+          </p>
         </div>
 
         <div>

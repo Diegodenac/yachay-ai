@@ -1,11 +1,19 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import MessageBubble from '../components/MessageBubble.jsx'
+import ProgressBar from '../components/ProgressBar.jsx'
 
 const SCENARIO_LABELS = {
   mercado: 'Mercado',
   salud: 'Centro de Salud',
   tramites: 'Trámites',
   turismo: 'Turismo',
+}
+
+const placeholders = {
+  Quechua: 'Rimay... (escribe en Quechua)',
+  Aymara: 'Arsuña... (escribe en Aymara)',
+  Guaraní: "Ñe'ẽ... (escribe en Guaraní)",
 }
 
 const API_URL = 'http://localhost:3001/api/chat'
@@ -21,6 +29,7 @@ export default function Chat() {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [stats, setStats] = useState({ wordsLearned: 0, corrections: 0 })
 
   const apiHistoryRef = useRef([])
   const initializedRef = useRef(false)
@@ -60,6 +69,9 @@ export default function Chat() {
       const reply = { role: 'assistant', content: data.reply }
       apiHistoryRef.current = [...apiHistoryRef.current, reply]
       setMessages([reply])
+      if (data.reply && data.reply.includes('%%CORRECTION%%')) {
+        setStats(prev => ({ ...prev, corrections: prev.corrections + 1, wordsLearned: prev.wordsLearned + 1 }))
+      }
     } catch {
       setMessages([{ role: 'assistant', content: '¡Hola! Parece que hay un problema de conexión con el servidor. Verifica que el backend esté corriendo en el puerto 3001.' }])
     } finally {
@@ -93,6 +105,9 @@ export default function Chat() {
       const reply = { role: 'assistant', content: data.reply }
       apiHistoryRef.current = [...apiHistoryRef.current, reply]
       setMessages(prev => [...prev, reply])
+      if (data.reply && data.reply.includes('%%CORRECTION%%')) {
+        setStats(prev => ({ ...prev, corrections: prev.corrections + 1, wordsLearned: prev.wordsLearned + 1 }))
+      }
     } catch {
       const errMsg = { role: 'assistant', content: 'Error al conectar con el servidor.' }
       apiHistoryRef.current = [...apiHistoryRef.current, errMsg]
@@ -110,6 +125,7 @@ export default function Chat() {
   }
 
   const scenarioLabel = scenario ? SCENARIO_LABELS[scenario] : null
+  const dynamicPlaceholder = placeholders[targetLanguage] || 'Escribe tu mensaje...'
 
   return (
     <div style={{
@@ -173,42 +189,21 @@ export default function Chat() {
           <div style={{ minWidth: '60px' }} />
         </div>
 
+        {/* Progress */}
+        <div style={{ padding: '0 16px' }}>
+          <ProgressBar wordsLearned={stats.wordsLearned} corrections={stats.corrections} />
+        </div>
+
         {/* Messages */}
         <div style={{
           flex: 1,
           overflowY: 'auto',
-          padding: '20px 16px',
+          padding: '12px 16px',
           display: 'flex',
           flexDirection: 'column',
-          gap: '10px',
         }}>
           {messages.map((msg, i) => (
-            <div
-              key={i}
-              style={{
-                display: 'flex',
-                justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
-              }}
-            >
-              <div style={{
-                maxWidth: '82%',
-                padding: '11px 15px',
-                borderRadius: msg.role === 'user'
-                  ? '18px 18px 4px 18px'
-                  : '4px 18px 18px 18px',
-                background: msg.role === 'user' ? '#F5A623' : '#141414',
-                color: msg.role === 'user' ? '#0A0A0A' : '#E0E0E0',
-                border: msg.role === 'user' ? 'none' : '1px solid #1E1E1E',
-                fontSize: '15px',
-                lineHeight: '1.55',
-                fontWeight: msg.role === 'user' ? '500' : '400',
-                fontFamily: 'Inter, system-ui, sans-serif',
-                whiteSpace: 'pre-wrap',
-                wordBreak: 'break-word',
-              }}>
-                {msg.content}
-              </div>
-            </div>
+            <MessageBubble key={i} message={msg} />
           ))}
 
           {loading && (
@@ -244,7 +239,7 @@ export default function Chat() {
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Escribe tu mensaje..."
+            placeholder={dynamicPlaceholder}
             disabled={loading}
             style={{
               flex: 1,
