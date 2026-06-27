@@ -4,6 +4,7 @@ import MessageBubble from '../components/MessageBubble.jsx'
 import ProgressBar from '../components/ProgressBar.jsx'
 import { useFirebase } from '../context/FirebaseContext'
 import { createSession, syncSession, finalizeSession } from '../hooks/useSession'
+import { DEMO_RESPONSES } from '../data/demoScript.js'
 
 const SCENARIO_LABELS = {
   mercado: 'Mercado',
@@ -26,8 +27,10 @@ export default function Chat() {
   const scenario = searchParams.get('scenario')
   const { user } = useFirebase()
 
-  const targetLanguage = localStorage.getItem('targetLanguage') || 'Quechua'
-  const userLevel = localStorage.getItem('userLevel') || 'Principiante'
+  const isDemoMode = searchParams.get('demo') === '1'
+
+  const targetLanguage = isDemoMode ? 'Quechua' : (localStorage.getItem('targetLanguage') || 'Quechua')
+  const userLevel = isDemoMode ? 'Principiante' : (localStorage.getItem('userLevel') || 'Principiante')
 
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
@@ -43,6 +46,7 @@ export default function Chat() {
   const statsRef = useRef({ wordsLearned: 0, corrections: 0 })
   const ttsEnabledRef = useRef(true)
   const recognitionRef = useRef(null)
+  const demoIndexRef = useRef(0)
 
   // Keep statsRef in sync for use in cleanup
   useEffect(() => {
@@ -143,27 +147,35 @@ export default function Chat() {
     sessionIdRef.current = sid
 
     try {
-      const headers = await getAuthHeaders()
-      const res = await fetch(API_URL, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          messages: [initialMsg],
-          targetLanguage,
-          userLevel,
-          nativeLanguage: 'Español',
-        }),
-      })
-      const data = await safeJson(res)
-      if (!res.ok) throw new Error(data.error || 'Error del servidor')
+      let replyText
+      if (isDemoMode) {
+        await new Promise(r => setTimeout(r, 1400))
+        replyText = DEMO_RESPONSES[demoIndexRef.current] || '¡Excelente! Sigue practicando.'
+        demoIndexRef.current++
+      } else {
+        const headers = await getAuthHeaders()
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            messages: [initialMsg],
+            targetLanguage,
+            userLevel,
+            nativeLanguage: 'Español',
+          }),
+        })
+        const data = await safeJson(res)
+        if (!res.ok) throw new Error(data.error || 'Error del servidor')
+        replyText = data.reply
+      }
 
-      const reply = { role: 'assistant', content: data.reply }
+      const reply = { role: 'assistant', content: replyText }
       apiHistoryRef.current = [...apiHistoryRef.current, reply]
       setMessages([reply])
-      speak(data.reply)
+      speak(replyText)
 
       const newStats = { wordsLearned: 0, corrections: 0 }
-      if (data.reply?.includes('%%CORRECTION%%')) {
+      if (replyText?.includes('%%CORRECTION%%')) {
         newStats.corrections = 1
         newStats.wordsLearned = 1
       }
@@ -188,33 +200,42 @@ export default function Chat() {
 
     setLoading(true)
     try {
-      const headers = await getAuthHeaders()
-      const res = await fetch(API_URL, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          messages: newHistory,
-          targetLanguage,
-          userLevel,
-          nativeLanguage: 'Español',
-        }),
-      })
-      const data = await safeJson(res)
-      if (!res.ok) throw new Error(data.error || 'Error del servidor')
+      let replyText
+      if (isDemoMode) {
+        await new Promise(r => setTimeout(r, 1400))
+        replyText = DEMO_RESPONSES[demoIndexRef.current] || '¡Sumaq! Sigue practicando quechua.'
+        demoIndexRef.current++
+      } else {
+        const headers = await getAuthHeaders()
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            messages: newHistory,
+            targetLanguage,
+            userLevel,
+            nativeLanguage: 'Español',
+          }),
+        })
+        const data = await safeJson(res)
+        if (!res.ok) throw new Error(data.error || 'Error del servidor')
+        replyText = data.reply
+      }
 
-      const reply = { role: 'assistant', content: data.reply }
+      const reply = { role: 'assistant', content: replyText }
       apiHistoryRef.current = [...apiHistoryRef.current, reply]
-      speak(data.reply)
+      speak(replyText)
 
       const updatedMessages = [...messages, userMsg, reply]
       setMessages(prev => [...prev, reply])
 
-      const hadCorrection = data.reply?.includes('%%CORRECTION%%')
+      const hadCorrection = replyText?.includes('%%CORRECTION%%')
       const newStats = {
         wordsLearned: stats.wordsLearned + (hadCorrection ? 1 : 0),
         corrections: stats.corrections + (hadCorrection ? 1 : 0),
       }
       if (hadCorrection) setStats(newStats)
+
 
       syncSession(user?.uid, sessionIdRef.current, {
         messages: [...updatedMessages],
