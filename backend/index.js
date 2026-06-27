@@ -7,7 +7,18 @@ import { admin, isAdminEnabled } from './firebase.js';
 dotenv.config();
 
 const app = express();
-app.use(cors());
+
+const allowedOrigins = [
+  'http://localhost:5173',
+  process.env.FRONTEND_URL,
+].filter(Boolean);
+
+app.use(cors({
+  origin: (origin, cb) => {
+    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+    cb(new Error('Not allowed by CORS'));
+  },
+}));
 app.use(express.json());
 
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';

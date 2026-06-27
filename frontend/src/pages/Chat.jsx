@@ -18,7 +18,7 @@ const placeholders = {
   Guaraní: "Ñe'ẽ... (escribe en Guaraní)",
 }
 
-const API_URL = 'http://localhost:3001/api/chat'
+const API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/chat`
 
 export default function Chat() {
   const navigate = useNavigate()
