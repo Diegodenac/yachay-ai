@@ -33,17 +33,37 @@ export default function Chat() {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [stats, setStats] = useState({ wordsLearned: 0, corrections: 0 })
+  const [ttsEnabled, setTtsEnabled] = useState(true)
 
   const apiHistoryRef = useRef([])
   const sessionIdRef = useRef(null)
   const initializedRef = useRef(false)
   const messagesEndRef = useRef(null)
   const statsRef = useRef({ wordsLearned: 0, corrections: 0 })
+  const ttsEnabledRef = useRef(true)
 
   // Keep statsRef in sync for use in cleanup
   useEffect(() => {
     statsRef.current = stats
   }, [stats])
+
+  function speak(text) {
+    if (!ttsEnabledRef.current || !window.speechSynthesis) return
+    const clean = text.replace(/%%CORRECTION%%([\s\S]*?)%%END_CORRECTION%%/g, '').trim()
+    if (!clean) return
+    window.speechSynthesis.cancel()
+    const u = new SpeechSynthesisUtterance(clean)
+    u.lang = 'es-BO'
+    u.rate = 0.92
+    window.speechSynthesis.speak(u)
+  }
+
+  function toggleTTS() {
+    const next = !ttsEnabledRef.current
+    ttsEnabledRef.current = next
+    setTtsEnabled(next)
+    if (!next) window.speechSynthesis.cancel()
+  }
 
   // Finalize session in Firestore when user leaves
   useEffect(() => {
@@ -115,6 +135,7 @@ export default function Chat() {
       const reply = { role: 'assistant', content: data.reply }
       apiHistoryRef.current = [...apiHistoryRef.current, reply]
       setMessages([reply])
+      speak(data.reply)
 
       const newStats = { wordsLearned: 0, corrections: 0 }
       if (data.reply?.includes('%%CORRECTION%%')) {
@@ -159,6 +180,7 @@ export default function Chat() {
 
       const reply = { role: 'assistant', content: data.reply }
       apiHistoryRef.current = [...apiHistoryRef.current, reply]
+      speak(data.reply)
 
       const updatedMessages = [...messages, userMsg, reply]
       setMessages(prev => [...prev, reply])
@@ -252,7 +274,23 @@ export default function Chat() {
             </div>
           </div>
 
-          <div style={{ minWidth: '60px' }} />
+          <button
+            onClick={toggleTTS}
+            title={ttsEnabled ? 'Silenciar voz' : 'Activar voz'}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: ttsEnabled ? '#F5A623' : '#444444',
+              fontSize: '20px',
+              cursor: 'pointer',
+              padding: '4px',
+              minWidth: '60px',
+              textAlign: 'right',
+              lineHeight: 1,
+            }}
+          >
+            {ttsEnabled ? '🔊' : '🔇'}
+          </button>
         </div>
 
         {/* Progress */}
